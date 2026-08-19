@@ -9,7 +9,7 @@ class ResponseScreen extends StatefulWidget {
 }
 
 class _ResponseScreenState extends State<ResponseScreen> {
-  final BluetoothService _bleService = BluetoothService();
+  final BleService _bleService = BleService();
 
   @override
   void initState() {

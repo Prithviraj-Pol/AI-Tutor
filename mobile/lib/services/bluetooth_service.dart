@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-class BluetoothService extends ChangeNotifier {
-  static final BluetoothService _instance = BluetoothService._internal();
-  factory BluetoothService() => _instance;
-  BluetoothService._internal();
+class BleService extends ChangeNotifier {
+  static final BleService _instance = BleService._internal();
+  factory BleService() => _instance;
+  BleService._internal();
 
   BluetoothDevice? _serverDevice;
   BluetoothCharacteristic? _inputChar;
@@ -44,7 +44,7 @@ class BluetoothService extends ChangeNotifier {
       responseText = "Connecting to server...";
       notifyListeners();
       
-      await _serverDevice!.connect();
+      await _serverDevice!.connect(license: License.nonprofit);
       isConnected = true;
       responseText = "Connected! Ask a question.";
       notifyListeners();

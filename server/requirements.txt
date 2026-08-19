@@ -1,7 +1,7 @@
-bleak==0.21.1
+bleak==3.0.2
 transformers==4.38.2
 sentence-transformers==2.5.1
-faiss-cpu==1.8.0
+faiss-cpu==1.15.0
 Flask==3.0.2
 vosk==0.3.45
-torch==2.2.1
+torch==2.13.0

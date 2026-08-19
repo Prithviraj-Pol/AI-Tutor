@@ -11,7 +11,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final BluetoothService _bleService = BluetoothService();
+  final BleService _bleService = BleService();
 
   @override
   void initState() {

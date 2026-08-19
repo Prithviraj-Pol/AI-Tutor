@@ -12,7 +12,7 @@ class InputScreen extends StatefulWidget {
 
 class _InputScreenState extends State<InputScreen> {
   final TextEditingController _controller = TextEditingController();
-  final BluetoothService _bleService = BluetoothService();
+  final BleService _bleService = BleService();
   final SpeechService _speechService = SpeechService();
 
   void _submitDoubt(String text) async {
@@ -27,9 +27,11 @@ class _InputScreenState extends State<InputScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
