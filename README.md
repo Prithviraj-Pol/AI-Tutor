@@ -1,4 +1,4 @@
-# Intelligent Vernacular Tutor (IVT)
+# AI-Tutor
 **A Bluetooth-Enabled AI Doubt Resolution System for Tier 2/3 Students**
 
 ## Executive Summary
