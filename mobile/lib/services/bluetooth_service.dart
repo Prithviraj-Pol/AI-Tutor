@@ -1,104 +1,101 @@
-import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:uuid/uuid.dart';
+import '../models/chat_message.dart';
+
+import 'storage_service.dart';
 
 class BleService extends ChangeNotifier {
   static final BleService _instance = BleService._internal();
   factory BleService() => _instance;
   BleService._internal();
 
-  BluetoothDevice? _serverDevice;
-  BluetoothCharacteristic? _inputChar;
-  BluetoothCharacteristic? _outputChar;
-
   bool isConnected = false;
-  String responseText = "Connect to AI Tutor to start...";
-  final String serverName = 'AI_Tutor_Kannada';
+  
+  List<ChatMessage> chatHistory = [];
+  bool _isGenerating = false;
+  final _uuid = const Uuid();
+
+  void clearHistory() {
+    chatHistory.clear();
+    notifyListeners();
+  }
 
   Future<void> scanAndConnect() async {
-    responseText = "Scanning for IVT Server...";
+    // Simulate scanning and connecting delay
+    await Future.delayed(const Duration(seconds: 1));
+    isConnected = true;
     notifyListeners();
-
-    try {
-      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
-      
-      FlutterBluePlus.scanResults.listen((results) async {
-        for (ScanResult r in results) {
-          if (r.device.platformName == serverName || r.device.advName == serverName) {
-            await FlutterBluePlus.stopScan();
-            _serverDevice = r.device;
-            await _connectToServer();
-            break;
-          }
-        }
-      });
-    } catch (e) {
-      responseText = "Error scanning: $e";
-      notifyListeners();
-    }
-  }
-
-  Future<void> _connectToServer() async {
-    if (_serverDevice == null) return;
-    try {
-      responseText = "Connecting to server...";
-      notifyListeners();
-      
-      await _serverDevice!.connect(license: License.nonprofit);
-      isConnected = true;
-      responseText = "Connected! Ask a question.";
-      notifyListeners();
-      
-      await _discoverServices();
-    } catch (e) {
-      responseText = "Connection failed: $e";
-      notifyListeners();
-    }
-  }
-
-  Future<void> _discoverServices() async {
-    if (_serverDevice == null) return;
-    
-    // ignore: deprecated_member_use
-    List<BluetoothService> services = await _serverDevice!.discoverServices();
-    for (var service in services) {
-      if (service.uuid.toString().contains('440000')) {
-        for (var c in service.characteristics) {
-          if (c.uuid.toString().contains('440001')) {
-            _inputChar = c;
-          }
-          if (c.uuid.toString().contains('440002')) {
-            _outputChar = c;
-            await _outputChar!.setNotifyValue(true);
-            _outputChar!.lastValueStream.listen((value) {
-              final chunk = utf8.decode(value);
-              if (responseText == "Connected! Ask a question." || responseText.startsWith("Asking:")) {
-                responseText = chunk;
-              } else {
-                responseText += chunk;
-              }
-              notifyListeners();
-            });
-          }
-        }
-      }
-    }
   }
 
   Future<void> sendDoubt(String question) async {
-    if (!isConnected || _inputChar == null) {
+    if (!isConnected) {
       throw Exception('Not connected to server');
     }
+    
+    if (_isGenerating) return; // Prevent multiple clicks
+    _isGenerating = true;
 
-    responseText = "Asking: $question\n\nWaiting for response...";
+    // Add User message
+    final userMsg = ChatMessage(
+      id: _uuid.v4(),
+      text: question,
+      role: ChatRole.user,
+      timestamp: DateTime.now(),
+    );
+    chatHistory.add(userMsg);
     notifyListeners();
 
-    Map<String, dynamic> payload = {
-      'question': question,
-      'subject': 'Mathematics',
-      'language': 'kn',
-    };
+    // Add AI "thinking" message
+    final aiId = _uuid.v4();
+    chatHistory.add(ChatMessage(
+      id: aiId,
+      text: '',
+      role: ChatRole.ai,
+      timestamp: DateTime.now(),
+      isThinking: true,
+    ));
+    notifyListeners();
 
-    await _inputChar!.write(utf8.encode(jsonEncode(payload)), withoutResponse: true);
+    // Simulate processing delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Remove thinking state
+    int aiIndex = chatHistory.indexWhere((m) => m.id == aiId);
+    if (aiIndex != -1) {
+      chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(isThinking: false);
+      notifyListeners();
+    }
+
+    // Prepare simulated response based on profile (fake logic)
+    final profile = await StorageService().getStudentProfile();
+    String simulatedResponse = "Sure! Let's solve this step by step.\n\n";
+    if (profile.languagePreference.startsWith('Kannada')) {
+      simulatedResponse += "**ಹಂತ 1: ಸೂತ್ರವನ್ನು ಅನ್ವಯಿಸಿ (Step 1: Apply formula)**\n";
+      simulatedResponse += "CaCO₃ ಅನ್ನು ಕ್ಯಾಲ್ಸಿಯಂ ಕಾರ್ಬೋನೇಟ್ ಎಂದು ಕರೆಯಲಾಗುತ್ತದೆ...\n\n";
+    } else {
+      simulatedResponse += "**Step 1: Identify the formula**\n";
+      simulatedResponse += "CaCO₃ is calcium carbonate...\n\n";
+    }
+    
+    simulatedResponse += "**Answer:**\nIt is commonly found in Limestone, Marble, and Chalk.";
+
+    // Stream the response
+    String currentText = "";
+    for (int i = 0; i < simulatedResponse.length; i += 3) {
+      int end = i + 3;
+      if (end > simulatedResponse.length) end = simulatedResponse.length;
+      currentText += simulatedResponse.substring(i, end);
+      
+      aiIndex = chatHistory.indexWhere((m) => m.id == aiId);
+      if (aiIndex != -1) {
+        chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(text: currentText);
+        notifyListeners();
+      }
+      
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+    
+    _isGenerating = false;
   }
 }

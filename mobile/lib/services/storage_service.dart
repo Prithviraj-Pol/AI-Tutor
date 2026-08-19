@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/student_model.dart';
 
 class StorageService {
@@ -5,15 +7,25 @@ class StorageService {
   factory StorageService() => _instance;
   StorageService._internal();
 
-  StudentModel? _cachedStudent;
+  static const String _studentKey = 'student_profile';
 
   Future<void> saveStudentProfile(StudentModel student) async {
-    // Mock saving to shared_preferences
-    _cachedStudent = student;
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = jsonEncode(student.toJson());
+    await prefs.setString(_studentKey, jsonStr);
   }
 
   Future<StudentModel> getStudentProfile() async {
-    // Mock retrieval
-    return _cachedStudent ?? StudentModel(id: 'student_001');
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_studentKey);
+    if (jsonStr != null) {
+      try {
+        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+        return StudentModel.fromJson(map);
+      } catch (e) {
+        // Fallback
+      }
+    }
+    return StudentModel(id: 'student_001');
   }
 }
