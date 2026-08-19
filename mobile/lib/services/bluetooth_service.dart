@@ -1,39 +1,77 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
 import '../models/chat_message.dart';
 
 import 'storage_service.dart';
+
+enum ServerStatus {
+  offline,
+  online,
+  error,
+}
 
 class BleService extends ChangeNotifier {
   static final BleService _instance = BleService._internal();
   factory BleService() => _instance;
   BleService._internal();
 
-  bool isConnected = false;
+  ServerStatus status = ServerStatus.offline;
+  bool get isConnected => status == ServerStatus.online;
   
   List<ChatMessage> chatHistory = [];
   bool _isGenerating = false;
   final _uuid = const Uuid();
+  String _conversationId = const Uuid().v4();
+
+  // Try localhost first (Windows), then emulator host
+  final List<String> _possibleUrls = [
+    'http://127.0.0.1:5000',
+    'http://10.0.2.2:5000'
+  ];
+  String? _activeUrl;
 
   void clearHistory() {
     chatHistory.clear();
+    _conversationId = const Uuid().v4(); // Reset memory context
     notifyListeners();
   }
 
   Future<void> scanAndConnect() async {
-    // Simulate scanning and connecting delay
-    await Future.delayed(const Duration(seconds: 1));
-    isConnected = true;
+    status = ServerStatus.offline;
+    notifyListeners();
+
+    for (String url in _possibleUrls) {
+      try {
+        final response = await http.get(Uri.parse('$url/health')).timeout(const Duration(seconds: 2));
+        if (response.statusCode == 200) {
+          _activeUrl = url;
+          status = ServerStatus.online;
+          notifyListeners();
+          return;
+        }
+      } catch (e) {
+        // Continue to next URL
+      }
+    }
+    
+    // If all fail
+    status = ServerStatus.error;
     notifyListeners();
   }
 
   Future<void> sendDoubt(String question) async {
-    if (!isConnected) {
-      throw Exception('Not connected to server');
+    if (!isConnected || _activeUrl == null) {
+      // Try to reconnect once if disconnected
+      await scanAndConnect();
+      if (!isConnected) {
+        throw Exception('AI Tutor Server disconnected. Ensure local server is running.');
+      }
     }
     
-    if (_isGenerating) return; // Prevent multiple clicks
+    if (_isGenerating) return; 
     _isGenerating = true;
 
     // Add User message
@@ -57,45 +95,70 @@ class BleService extends ChangeNotifier {
     ));
     notifyListeners();
 
-    // Simulate processing delay
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Remove thinking state
-    int aiIndex = chatHistory.indexWhere((m) => m.id == aiId);
-    if (aiIndex != -1) {
-      chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(isThinking: false);
-      notifyListeners();
-    }
-
-    // Prepare simulated response based on profile (fake logic)
-    final profile = await StorageService().getStudentProfile();
-    String simulatedResponse = "Sure! Let's solve this step by step.\n\n";
-    if (profile.languagePreference.startsWith('Kannada')) {
-      simulatedResponse += "**ಹಂತ 1: ಸೂತ್ರವನ್ನು ಅನ್ವಯಿಸಿ (Step 1: Apply formula)**\n";
-      simulatedResponse += "CaCO₃ ಅನ್ನು ಕ್ಯಾಲ್ಸಿಯಂ ಕಾರ್ಬೋನೇಟ್ ಎಂದು ಕರೆಯಲಾಗುತ್ತದೆ...\n\n";
-    } else {
-      simulatedResponse += "**Step 1: Identify the formula**\n";
-      simulatedResponse += "CaCO₃ is calcium carbonate...\n\n";
-    }
-    
-    simulatedResponse += "**Answer:**\nIt is commonly found in Limestone, Marble, and Chalk.";
-
-    // Stream the response
-    String currentText = "";
-    for (int i = 0; i < simulatedResponse.length; i += 3) {
-      int end = i + 3;
-      if (end > simulatedResponse.length) end = simulatedResponse.length;
-      currentText += simulatedResponse.substring(i, end);
+    try {
+      final profile = await StorageService().getStudentProfile();
       
-      aiIndex = chatHistory.indexWhere((m) => m.id == aiId);
+      final request = http.Request('POST', Uri.parse('$_activeUrl/chat/stream'));
+      request.headers['Content-Type'] = 'application/json';
+      request.body = jsonEncode({
+        "question": question,
+        "student_profile": profile.toJson(),
+        "conversation_id": _conversationId
+      });
+
+      final response = await http.Client().send(request);
+
+      if (response.statusCode != 200) {
+        throw Exception('Server returned ${response.statusCode}');
+      }
+
+      // Remove thinking state
+      int aiIndex = chatHistory.indexWhere((m) => m.id == aiId);
       if (aiIndex != -1) {
-        chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(text: currentText);
+        chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(isThinking: false);
         notifyListeners();
       }
+
+      String currentText = "";
       
-      await Future.delayed(const Duration(milliseconds: 50));
+      await for (var bytes in response.stream) {
+        final chunkString = utf8.decode(bytes);
+        final lines = chunkString.split('\n');
+        
+        for (String line in lines) {
+          if (line.trim().isEmpty) continue;
+          try {
+            final data = jsonDecode(line);
+            if (data['type'] == 'chat_stream') {
+              currentText += data['token'];
+              
+              aiIndex = chatHistory.indexWhere((m) => m.id == aiId);
+              if (aiIndex != -1) {
+                chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(text: currentText);
+                notifyListeners();
+              }
+            } else if (data['type'] == 'chat_complete') {
+              // Done
+            }
+          } catch (e) {
+            // Ignore malformed JSON chunks from stream boundaries
+          }
+        }
+      }
+      
+    } catch (e) {
+      int aiIndex = chatHistory.indexWhere((m) => m.id == aiId);
+      if (aiIndex != -1) {
+        chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(
+          isThinking: false, 
+          text: 'Error connecting to IVT Brain: $e'
+        );
+        notifyListeners();
+      }
+      status = ServerStatus.error;
+      notifyListeners();
+    } finally {
+      _isGenerating = false;
     }
-    
-    _isGenerating = false;
   }
 }

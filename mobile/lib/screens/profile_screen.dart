@@ -131,15 +131,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              ...['ಕನ್ನಡ (Kannada)', 'English', 'हिन्दी (Hindi)', 'தமிழ் (Tamil)', 'తెలుగు (Telugu)', 'मराठी (Marathi)'].map((lang) {
-                return RadioListTile<String>(
-                  title: Text(lang),
-                  value: lang.split(' ')[0],
-                  groupValue: tempLang,
-                  activeColor: const Color(0xFFFF6B5A),
-                  onChanged: (val) => setModalState(() => tempLang = val!),
-                );
-              }),
+              // ignore: deprecated_member_use
+              RadioGroup<String>(
+                groupValue: tempLang,
+                onChanged: (val) => setModalState(() => tempLang = val!),
+                child: Column(
+                  children: ['ಕನ್ನಡ (Kannada)', 'English', 'हिन्दी (Hindi)'].map((lang) {
+                    // ignore: deprecated_member_use
+                    return RadioListTile<String>(
+                      title: Text(lang),
+                      value: lang.split(' ')[0],
+                      groupValue: tempLang,
+                      onChanged: (val) => setModalState(() => tempLang = val!),
+                      activeColor: const Color(0xFFFF6B5A),
+                    );
+                  }).toList(),
+                ),
+              ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -193,26 +201,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               const Text('Learning Pace', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...['Slow', 'Medium', 'Fast'].map((pace) {
-                return RadioListTile<String>(
-                  title: Text(pace),
-                  value: pace,
-                  groupValue: tempPace,
-                  activeColor: const Color(0xFFFF6B5A),
-                  onChanged: (val) => setModalState(() => tempPace = val!),
-                );
-              }),
+              // ignore: deprecated_member_use
+              RadioGroup<String>(
+                groupValue: tempPace,
+                onChanged: (val) => setModalState(() => tempPace = val!),
+                child: Column(
+                  children: ['Slow', 'Medium', 'Fast'].map((pace) {
+                    // ignore: deprecated_member_use
+                    return RadioListTile<String>(
+                      title: Text(pace),
+                      value: pace,
+                      groupValue: tempPace,
+                      onChanged: (val) => setModalState(() => tempPace = val!),
+                      activeColor: const Color(0xFFFF6B5A),
+                    );
+                  }).toList(),
+                ),
+              ),
               const Divider(),
               const Text('Explanation Style', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...['Quick Answer', 'Balanced', 'Detailed Step-by-Step', 'Concept First'].map((style) {
-                return RadioListTile<String>(
-                  title: Text(style),
-                  value: style,
-                  groupValue: tempStyle,
-                  activeColor: const Color(0xFFFF6B5A),
-                  onChanged: (val) => setModalState(() => tempStyle = val!),
-                );
-              }),
+              // ignore: deprecated_member_use
+              RadioGroup<String>(
+                groupValue: tempStyle,
+                onChanged: (val) => setModalState(() => tempStyle = val!),
+                child: Column(
+                  children: ['Quick Answer', 'Balanced', 'Detailed Step-by-Step', 'Concept First'].map((style) {
+                    // ignore: deprecated_member_use
+                    return RadioListTile<String>(
+                      title: Text(style),
+                      value: style,
+                      groupValue: tempStyle,
+                      onChanged: (val) => setModalState(() => tempStyle = val!),
+                      activeColor: const Color(0xFFFF6B5A),
+                    );
+                  }).toList(),
+                ),
+              ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -431,12 +455,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: ListView(
                     children: [
-                      SwitchListTile(title: const Text('Voice Answers'), value: tempVoice, activeColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempVoice = v)),
-                      SwitchListTile(title: const Text('Step-by-Step Explanations'), value: tempStep, activeColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempStep = v)),
-                      SwitchListTile(title: const Text('Show AI Sources'), value: tempSources, activeColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempSources = v)),
-                      SwitchListTile(title: const Text('Auto Play Voice'), value: tempAuto, activeColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempAuto = v)),
-                      SwitchListTile(title: const Text('Use Kannada Responses'), value: tempKannada, activeColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempKannada = v)),
-                      SwitchListTile(title: const Text('Save Chat History'), value: tempHistory, activeColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempHistory = v)),
+                      SwitchListTile(title: const Text('Voice Answers'), value: tempVoice, activeThumbColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempVoice = v)),
+                      SwitchListTile(title: const Text('Step-by-Step Explanations'), value: tempStep, activeThumbColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempStep = v)),
+                      SwitchListTile(title: const Text('Show AI Sources'), value: tempSources, activeThumbColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempSources = v)),
+                      SwitchListTile(title: const Text('Auto Play Voice'), value: tempAuto, activeThumbColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempAuto = v)),
+                      SwitchListTile(title: const Text('Use Kannada Responses'), value: tempKannada, activeThumbColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempKannada = v)),
+                      SwitchListTile(title: const Text('Save Chat History'), value: tempHistory, activeThumbColor: const Color(0xFFFF6B5A), onChanged: (v) => setModalState(() => tempHistory = v)),
                     ],
                   ),
                 ),
