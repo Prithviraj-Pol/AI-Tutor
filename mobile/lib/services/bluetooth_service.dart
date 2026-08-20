@@ -112,12 +112,9 @@ class BleService extends ChangeNotifier {
         throw Exception('Server returned ${response.statusCode}');
       }
 
-      // Remove thinking state
+      // We will remove thinking state only when the first real token arrives
       int aiIndex = chatHistory.indexWhere((m) => m.id == aiId);
-      if (aiIndex != -1) {
-        chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(isThinking: false);
-        notifyListeners();
-      }
+      bool isFirstToken = true;
 
       String currentText = "";
       
@@ -130,9 +127,15 @@ class BleService extends ChangeNotifier {
           try {
             final data = jsonDecode(line);
             if (data['type'] == 'chat_stream') {
+              if (isFirstToken) {
+                isFirstToken = false;
+                if (aiIndex != -1) {
+                  chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(isThinking: false);
+                }
+              }
+              
               currentText += data['token'];
               
-              aiIndex = chatHistory.indexWhere((m) => m.id == aiId);
               if (aiIndex != -1) {
                 chatHistory[aiIndex] = chatHistory[aiIndex].copyWith(text: currentText);
                 notifyListeners();

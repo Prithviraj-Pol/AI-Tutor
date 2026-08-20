@@ -45,8 +45,15 @@ def chat_stream():
     # 2. Generator for streaming JSON
     def generate():
         try:
+            # Yield an initial keep_alive to flush headers immediately
+            yield f"{json.dumps({'type': 'ping'})}\n"
+            
             # Stream tokens
             for token in llm.generate_stream(question, context, student_profile, conversation_id):
+                if token == "__ping__":
+                    yield f"{json.dumps({'type': 'ping'})}\n"
+                    continue
+                
                 chunk = {
                     "type": "chat_stream",
                     "message_id": message_id,

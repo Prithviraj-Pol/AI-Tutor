@@ -567,9 +567,12 @@ ANSWER THE ACTUAL QUESTION."""
             }
             
             response = requests.post(f"{self.base_url}/chat/completions", json=payload, stream=True)
+            if response.status_code != 200:
+                logger.error(f"Llamafile error response: {response.text}")
             response.raise_for_status()
             
             full_answer = ""
+            reasoning_answer = ""
             for line in response.iter_lines():
                 if line:
                     decoded_line = line.decode('utf-8')
@@ -585,8 +588,9 @@ ANSWER THE ACTUAL QUESTION."""
                                 # Handle reasoning content (e.g. from qwen3-thinking models)
                                 if 'reasoning_content' in delta and delta['reasoning_content']:
                                     token = delta['reasoning_content']
-                                    full_answer += token
-                                    yield token
+                                    # DO NOT yield this to the frontend to strictly obey the DO NOT REVEAL INTERNAL REASONING rule
+                                    reasoning_answer += token
+                                    yield "__ping__"
                                     
                                 # Handle standard content
                                 if 'content' in delta and delta['content']:
