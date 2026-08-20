@@ -26,10 +26,11 @@ class BleService extends ChangeNotifier {
   final _uuid = const Uuid();
   String _conversationId = const Uuid().v4();
 
-  // Try localhost first (Windows), then emulator host
+  // Try localhost first (Windows), then emulator host, then local network IP
   final List<String> _possibleUrls = [
     'http://127.0.0.1:5000',
-    'http://10.0.2.2:5000'
+    'http://10.0.2.2:5000',
+    'http://10.10.103.51:5000', // Your local network IP
   ];
   String? _activeUrl;
 
