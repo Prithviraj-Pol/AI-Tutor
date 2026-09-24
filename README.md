@@ -1,5 +1,5 @@
 # AI-Tutor
-**A Bluetooth-Enabled AI Doubt Resolution System for Tier 2/3 Students**
+**A Bluetooth-Enabled AI Doubt Resolution System for Tier 2/3 Students**.
 
 ## Executive Summary
 **Project Title:** Intelligent Vernacular Tutor (IVT)
